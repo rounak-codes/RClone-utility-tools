@@ -2,15 +2,12 @@ Option Explicit
 Dim WshShell
 Set WshShell = WScript.CreateObject("WScript.Shell")
 
-' Kill any leftover rclone processes before mounting
 WshShell.Run "taskkill /f /im rclone.exe", 0, True
-
-' Wait for network to initialize
-WScript.Sleep 10000
+WScript.Sleep 3000
 
 WshShell.Run "rclone mount ""Cloud Volume:"" Z: " & _
 "--rc --rc-web-gui --rc-web-gui-no-open-browser " & _
-"--rc-addr 127.0.0.1:7576 --rc-user username --rc-pass password " & _
+"--rc-addr 127.0.0.1:7576 --rc-user rounak --rc-pass rounakbag2002 " & _
 "--vfs-cache-mode writes " & _
 "--vfs-read-ahead 512M " & _
 "--buffer-size 512M " & _

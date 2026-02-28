@@ -1,13 +1,11 @@
 """
 RcloneTray.py
-Tray monitor for rclone mount — replaces RcloneMaster.ps1
+Tray monitor for rclone mount — always-on mode
 Requires: pip install pystray pillow psutil
 """
 
 import threading
 import subprocess
-import sys
-import os
 import time
 
 import psutil
@@ -15,20 +13,15 @@ import pystray
 from PIL import Image, ImageDraw
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Config — adjust these paths to match your setup
+#  Config — adjust these to match your setup
 # ─────────────────────────────────────────────────────────────────────────────
 
-VBS_PATH       = r"C:\Path\to\RCloneTray\RcloneMaster.vbs"
-RC_ADDR        = "127.0.0.1:5573"
-CHECK_INTERVAL = 5    # seconds between auto-detect checks
-STARTUP_GRACE  = 40   # seconds to wait before first auto-detect (lets VBS finish)
-
-GAME_LIST = [
-    "ZenlessZoneZero",
-    "GenshinImpact",
-    "PGR",
-    "Endfield",
-]
+RC_ADDR           = "127.0.0.1:7576"
+RC_USER           = "username"
+RC_PASS           = "password"
+REMOUNT_TASK_NAME = "RcloneRemount"  # Task Scheduler task name
+CHECK_INTERVAL    = 5    # seconds between auto-detect checks
+STARTUP_GRACE     = 40   # seconds to wait before first auto-detect
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,19 +45,12 @@ def is_rclone_running() -> bool:
     return False
 
 
-def is_game_running() -> bool:
-    running = {p.info["name"].lower()
-               for p in psutil.process_iter(["name"])
-               if p.info["name"]}
-    return any(g.lower() + ".exe" in running or g.lower() in running
-               for g in GAME_LIST)
-
-
 def start_rclone():
+    """Trigger the RcloneRemount scheduled task — runs in user session so Z: mounts correctly."""
     if not is_rclone_running():
         subprocess.Popen(
-            ["wscript.exe", VBS_PATH],
-            creationflags=subprocess.CREATE_NO_WINDOW
+            ["schtasks", "/run", "/tn", REMOUNT_TASK_NAME],
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
 
 
@@ -73,7 +59,12 @@ def stop_rclone():
         # Graceful quit via RC
         try:
             subprocess.run(
-                ["rclone", "rc", "core/quit", f"--rc-addr={RC_ADDR}"],
+                [
+                    "rclone", "rc", "core/quit",
+                    f"--rc-addr={RC_ADDR}",
+                    f"--rc-user={RC_USER}",
+                    f"--rc-pass={RC_PASS}",
+                ],
                 creationflags=subprocess.CREATE_NO_WINDOW,
                 timeout=5
             )
@@ -91,7 +82,7 @@ def stop_rclone():
 
 
 def wait_for_port_free(port: int, timeout: int = 15):
-    """Wait until port is no longer in use (so new rclone can bind it)."""
+    """Wait until port is no longer in use."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         conns = [c for c in psutil.net_connections()
@@ -107,9 +98,8 @@ def wait_for_port_free(port: int, timeout: int = 15):
 
 class RcloneTray:
     def __init__(self):
-        self._lock         = threading.Lock()
-        self._stop_ev      = threading.Event()
-        self._startup_done = False   # False = still in grace period
+        self._lock    = threading.Lock()
+        self._stop_ev = threading.Event()
 
         self.icon = pystray.Icon(
             "rclone_tray",
@@ -154,7 +144,7 @@ class RcloneTray:
             self._set_busy()
             wait_for_port_free(int(RC_ADDR.split(":")[1]))
             start_rclone()
-            time.sleep(3)
+            time.sleep(5)  # give VBS time to start rclone
             self._refresh_icon()
 
     def _do_stop(self):
@@ -184,29 +174,18 @@ class RcloneTray:
         self._stop_ev.set()
         self.icon.stop()
 
-    # ── Auto-detect loop ──────────────────────────────────────────────────────
+    # ── Auto-detect loop (always-on — restarts rclone if it crashes) ──────────
 
     def _auto_detect(self):
-        # Wait for the VBS to finish starting rclone before we start checking.
-        # This prevents RcloneTray from racing with the VBS on boot.
+        # Wait for boot mount to finish before first check
         self._stop_ev.wait(STARTUP_GRACE)
-        self._startup_done = True
         self._refresh_icon()
 
         while not self._stop_ev.wait(CHECK_INTERVAL):
-            game_running   = is_game_running()
-            rclone_running = is_rclone_running()
-
-            if game_running and rclone_running:
-                # Game started — stop rclone to free memory
-                threading.Thread(target=self._do_stop, daemon=True).start()
-
-            elif not game_running and not rclone_running:
-                # Game closed (or rclone crashed) — restart it
+            if not is_rclone_running():
+                # Rclone crashed or was stopped externally — restart it
                 threading.Thread(target=self._do_start, daemon=True).start()
-
             else:
-                # Just refresh the icon colour
                 self._refresh_icon()
 
     # ── Run ───────────────────────────────────────────────────────────────────
