@@ -134,7 +134,7 @@ Or create a desktop shortcut pointing to `pythonw.exe` with `RcloneUploader.py` 
 
 ## Game detection
 
-Games that trigger rclone to stop when running:
+Games that trigger rclone to stop when running , added by default:
 
 - ZenlessZoneZero
 - GenshinImpact
