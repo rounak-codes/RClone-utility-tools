@@ -82,7 +82,7 @@ Starts the tray monitor after rclone has had time to initialize.
 |---|---|
 | Trigger | At log on (your user) |
 | Delay | 30 seconds |
-| Program | `C:\Users\YOUR_USERNAME\AppData\Local\Programs\Python\Python3xx\pythonw.exe` |
+| Program | `C:\Path\to\pythonw.exe` |
 | Arguments | `"C:\Users\YOUR_USERNAME\RcloneTray.py"` |
 | Run with highest privileges | Yes |
 | Stop task if runs longer than | Disabled |
