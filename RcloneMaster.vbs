@@ -2,7 +2,10 @@ Option Explicit
 Dim WshShell
 Set WshShell = WScript.CreateObject("WScript.Shell")
 
-' Wait 15 seconds for network to initialize
+' Kill any leftover rclone processes before mounting
+WshShell.Run "taskkill /f /im rclone.exe", 0, True
+
+' Wait for network to initialize
 WScript.Sleep 10000
 
 WshShell.Run "rclone mount ""Cloud Volume:"" Z: " & _
@@ -12,4 +15,6 @@ WshShell.Run "rclone mount ""Cloud Volume:"" Z: " & _
 "--buffer-size 1G " & _
 "--dir-cache-time 12h " & _
 "--poll-interval 10m " & _
-"--transfers 2 --checkers 2", 0, False
+"--transfers 2 --checkers 2 " & _
+"--links " & _
+"--log-file ""C:\Path\to\RCloneTray\rclone.log"" --log-level INFO", 0, False

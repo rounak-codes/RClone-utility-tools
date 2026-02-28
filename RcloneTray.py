@@ -18,9 +18,10 @@ from PIL import Image, ImageDraw
 #  Config — adjust these paths to match your setup
 # ─────────────────────────────────────────────────────────────────────────────
 
-VBS_PATH = r"C:\Users\YOUR_USERNAME\RcloneMaster.vbs"
-RC_ADDR    = "127.0.0.1:5573"
-CHECK_INTERVAL = 5   # seconds between auto-detect checks
+VBS_PATH       = r"C:\Path\to\RCloneTray\RcloneMaster.vbs"
+RC_ADDR        = "127.0.0.1:5573"
+CHECK_INTERVAL = 5    # seconds between auto-detect checks
+STARTUP_GRACE  = 40   # seconds to wait before first auto-detect (lets VBS finish)
 
 GAME_LIST = [
     "ZenlessZoneZero",
@@ -106,8 +107,9 @@ def wait_for_port_free(port: int, timeout: int = 15):
 
 class RcloneTray:
     def __init__(self):
-        self._lock    = threading.Lock()
-        self._stop_ev = threading.Event()
+        self._lock         = threading.Lock()
+        self._stop_ev      = threading.Event()
+        self._startup_done = False   # False = still in grace period
 
         self.icon = pystray.Icon(
             "rclone_tray",
@@ -185,6 +187,12 @@ class RcloneTray:
     # ── Auto-detect loop ──────────────────────────────────────────────────────
 
     def _auto_detect(self):
+        # Wait for the VBS to finish starting rclone before we start checking.
+        # This prevents RcloneTray from racing with the VBS on boot.
+        self._stop_ev.wait(STARTUP_GRACE)
+        self._startup_done = True
+        self._refresh_icon()
+
         while not self._stop_ev.wait(CHECK_INTERVAL):
             game_running   = is_game_running()
             rclone_running = is_rclone_running()
@@ -194,7 +202,7 @@ class RcloneTray:
                 threading.Thread(target=self._do_stop, daemon=True).start()
 
             elif not game_running and not rclone_running:
-                # Game closed (or first boot) — start rclone
+                # Game closed (or rclone crashed) — restart it
                 threading.Thread(target=self._do_start, daemon=True).start()
 
             else:
