@@ -82,7 +82,7 @@ Starts the tray monitor after rclone has had time to initialize.
 |---|---|
 | Trigger | At log on (your user) |
 | Delay | 30 seconds |
-| Program | `C:\Users\YOUR_USERNAME\AppData\Local\Programs\Python\Python3xx\pythonw.exe` |
+| Program | `C:\Path\to\pythonw.exe` |
 | Arguments | `"C:\Users\YOUR_USERNAME\RcloneTray.py"` |
 | Run with highest privileges | Yes |
 | Stop task if runs longer than | Disabled |
@@ -134,7 +134,7 @@ Or create a desktop shortcut pointing to `pythonw.exe` with `RcloneUploader.py` 
 
 ## Game detection
 
-Games that trigger rclone to stop when running:
+Games that trigger rclone to stop when running , added by default:
 
 - ZenlessZoneZero
 - GenshinImpact
