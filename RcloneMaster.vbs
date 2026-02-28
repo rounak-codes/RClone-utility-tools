@@ -17,4 +17,4 @@ WshShell.Run "rclone mount ""Cloud Volume:"" Z: " & _
 "--poll-interval 10m " & _
 "--transfers 2 --checkers 2 " & _
 "--links " & _
-"--log-file ""C:\Path\to\RCloneTray\rclone.log"" --log-level INFO", 0, False
+"C:\Path\to\RCloneTray\rclone.log", 0, False
