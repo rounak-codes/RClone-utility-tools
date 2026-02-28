@@ -10,11 +10,10 @@ WScript.Sleep 10000
 
 WshShell.Run "rclone mount ""Cloud Volume:"" Z: " & _
 "--rc --rc-web-gui --rc-web-gui-no-open-browser " & _
-"--rc-addr 127.0.0.1:5573 --rc-no-auth " & _
+"--rc-addr 127.0.0.1:7576 --rc-no-auth " & _
 "--vfs-cache-mode minimal " & _
 "--buffer-size 1G " & _
 "--dir-cache-time 12h " & _
 "--poll-interval 10m " & _
 "--transfers 2 --checkers 2 " & _
-"--links " & _
-"C:\Path\to\RCloneTray\rclone.log", 0, False
+"--links", 0, False
